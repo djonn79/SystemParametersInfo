@@ -4,8 +4,7 @@ public class SystemParameters<T> where T : Win32_Base
 	{
 		foreach (ManagementObject mo in new ManagementObjectSearcher($"SELECT * FROM {typeof(T).Name}").Get())
 		{
-			// При добавлении нового класса (производного от Win32_Base) нужный объект будет создан автоматически.  
-			var construct = typeof(T).GetConstructor(new[] { mo.GetType() });
+	                var construct = typeof(T).GetConstructor(new[] { mo.GetType() });
 			var instance = construct.Invoke(new[] { mo });
 			yield return (Win32_Base)instance;
 		}
