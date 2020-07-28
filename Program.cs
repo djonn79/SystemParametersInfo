@@ -4,7 +4,8 @@ public class SystemParameters<T> where T : Win32_Base
 	{
 		foreach (ManagementObject mo in new ManagementObjectSearcher($"SELECT * FROM {typeof(T).Name}").Get())
 		{
-	                var construct = typeof(T).GetConstructor(new[] { mo.GetType() });
+			// При добавлении нового класса (производного от Win32_Base) нужный объект будет создан автоматически.  
+			var construct = typeof(T).GetConstructor(new[] { mo.GetType() });
 			var instance = construct.Invoke(new[] { mo });
 			yield return (Win32_Base)instance;
 		}
@@ -156,9 +157,7 @@ public class Win32_Processor : Win32_Base
 	public bool VMMonitorModeExtensions => (bool)mo["VMMonitorModeExtensions"];
 	public uint VoltageCaps => (uint)mo["VoltageCaps"];
 }
-
-
-class Win32_BIOS : Win32_Base
+public class Win32_BIOS : Win32_Base
 {
 	public Win32_BIOS(ManagementObject mo) : base(mo) { }
 
@@ -196,7 +195,7 @@ class Win32_BIOS : Win32_Base
 }
 
 
-class Win32_Product : Win32_Base
+public class Win32_Product : Win32_Base
 {
 	public Win32_Product(ManagementObject mo) : base(mo) { }
 	
@@ -240,7 +239,7 @@ public class Program
 	public static void Main(string[] args)
 	{
 		//Console.WriteLine(new SystemParameters<Win32_BIOS>().GetInfo());
-		//Console.WriteLine(new SystemParameters<Win32_DiskDrive>().GetInfo());
-		Console.WriteLine(new SystemParameters<Win32_Product>().GetInfo());
+		Console.WriteLine(new SystemParameters<Win32_DiskDrive>().GetInfo());
+		//Console.WriteLine(new SystemParameters<Win32_Product>().GetInfo());
 	}
 }
