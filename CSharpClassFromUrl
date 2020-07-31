@@ -1,0 +1,66 @@
+void Main()
+{
+	string url = @"https://docs.microsoft.com/ru-ru/windows/win32/cimwin32prov/win32-desktopmonitor";
+	GetCSharpClassFromUrl(url).Dump();
+}
+
+string GetCSharpClass(string cppClass)
+{
+	cppClass = cppClass.Substring(cppClass.IndexOf("\nclass") + 1);
+	cppClass = cppClass.Substring(0, cppClass.IndexOf("};") - 1)
+	.Replace("boolean", "bool")
+	.Replace("uint16", "ushort")
+	.Replace("uint32", "uint")
+	.Replace("uint64", "ulong")
+	.Replace("datetime", "DateTime");
+	var className = cppClass.Split(':')[0].Replace("class", "").Trim();
+	var fields = cppClass.Substring(cppClass.IndexOf("\n{") + 2).Replace("\r\n};", "").Trim();
+	var body = "public class " + className + ": Win32_Base\r\n{\r\npublic " + className + "(ManagementObject mo) : base(mo) { }\r\nproperties}";
+	var properties = new StringBuilder();
+	foreach (var field in fields.Replace(";", "")
+		.Split('\n')
+		.Select(x => { var str = x.Trim().Split(' '); return new { type = str[0], value = str[1] }; })
+		.ToList()
+	)
+	{
+		if (field.value.Contains("[]"))
+		{
+			var pname = field.value.Replace("[]", "");
+			properties.Append($@"public object[] {pname} => mo[""{pname}""];\r\n");
+			continue;
+		}
+		if (field.type == "string")
+		{
+			properties.Append($"public string {field.value} => mo[\"{field.value}\"].ToString();\r\n");
+			continue;
+		}
+		else if (field.type == "DateTime")
+		{
+			properties.Append($"public object {field.value} => mo[\"{field.value}\"]; //DateTime\r\n");
+		}
+		else
+		{
+			properties.Append($"public {field.type} {field.value} => ({field.type}) mo[\"{field.value}\"];\r\n");
+		}
+	}
+	body = body.Replace("properties", properties.ToString().Replace("\t}", "}"));
+	return body;
+}
+string GetContentFromURL(string url)
+{
+	using (var client = new WebClient())
+	{
+		var content = client.DownloadString(url);
+		return content;
+	}
+}
+string GetCppClass(string content)
+{
+	content = content.Substring(content.IndexOf("<code class=\"lang-syntax\""));
+	content = content.Substring(0, content.IndexOf("};") + 2);
+	return content;
+}
+string GetCSharpClassFromUrl(string url)
+{
+	return GetCSharpClass(GetCppClass(GetContentFromURL(url)));
+}
